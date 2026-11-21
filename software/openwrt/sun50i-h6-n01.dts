@@ -1,0 +1,200 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * N01 board: Allwinner H6 with LPDDR3, AXP805 PMIC and the co-packaged
+ * AC200 companion (audio codec + 100M ePHY + TV), for OpenWrt.
+ *
+ * Derived from the H6 Orange Pi board description through an N01-local base.
+ * Differences against the Orange Pi reference that matter on N01: no WiFi/BT/SPI flash,
+ * AC200 rails are ALDO2, PD rail is CLDO2 (not CLDO1, which stays on the SD
+ * card only), PH/PM rail is ALDO1 (not BLDO3), USB0 VBUS is switched on PL6,
+ * while Linux addresses the AXP805 through R-I2C.
+ *
+ * USB and HDMI are the two required functions on this board, so both the
+ * USB2 OTG/host path (USB0), the USB2 host path (USB1) and the SuperSpeed
+ * host path (USB3, with its USB2 companion) plus the full HDMI output chain
+ * are enabled below.
+ */
+
+#include "sun50i-h6-n01-base.dtsi"
+
+/ {
+	model = "N01 H6 board";
+	compatible = "n01,h6-board", "allwinner,sun50i-h6";
+
+	aliases {
+		serial0 = &uart0;
+		mmc0 = &mmc0;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led-0 {
+			label = "n01:red:power";
+			gpios = <&r_pio 0 4 GPIO_ACTIVE_HIGH>;	/* PL4 */
+			default-state = "on";
+		};
+
+		led-1 {
+			label = "n01:green:status";
+			gpios = <&r_pio 0 7 GPIO_ACTIVE_HIGH>;	/* PL7 */
+		};
+	};
+
+	/* USB0-DRVVBUS is switched by PL6 on N01. */
+	reg_usb_vbus: usb-vbus {
+		compatible = "regulator-fixed";
+		regulator-name = "usb0-vbus";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		vin-supply = <&reg_vcc5v>;
+		gpio = <&r_pio 0 6 GPIO_ACTIVE_HIGH>;		/* PL6 */
+		enable-active-high;
+		regulator-always-on;
+	};
+};
+
+/* ---- Power tree: N01 AXP805 rails ---------------------------------- */
+
+&reg_aldo1 {
+	regulator-name = "vcc-io-pl-pm-pg";
+	regulator-always-on;
+};
+
+&reg_aldo2 {
+	regulator-name = "vcc-ac200-ac-ldoin";
+	regulator-always-on;
+};
+
+&reg_aldo3 {
+	regulator-name = "aldo3-unused";
+	/delete-property/ regulator-always-on;
+};
+
+&reg_bldo1 {
+	regulator-name = "vcc18-bias-pll";
+	regulator-always-on;
+};
+
+&reg_bldo2 {
+	regulator-name = "vcc18-pc-pcie-hdmi-efuse";
+	regulator-always-on;
+};
+
+&reg_bldo3 {
+	regulator-name = "bldo3-unused";
+	/delete-property/ regulator-always-on;
+};
+
+&reg_cldo1 {
+	regulator-name = "vcc33-sd-io";
+	regulator-always-on;
+};
+
+&reg_cldo2 {
+	regulator-name = "vcc33-pd-uart";
+	regulator-always-on;
+};
+
+&reg_cldo3 {
+	regulator-name = "cldo3-unused";
+	/delete-property/ regulator-always-on;
+};
+
+&pio {
+	vcc-pc-supply = <&reg_bldo2>;
+	vcc-pd-supply = <&reg_cldo2>;
+	vcc-pg-supply = <&reg_aldo1>;
+};
+
+&r_pio {
+	vcc-pm-supply = <&reg_aldo1>;
+};
+
+/* ---- Storage: SD card only (N01 has no eMMC/NAND boot device) ------ */
+
+&mmc0 {
+	vmmc-supply = <&reg_cldo1>;
+	cd-gpios = <&pio 5 6 GPIO_ACTIVE_LOW>;
+	bus-width = <4>;
+	status = "okay";
+};
+
+/* ---- USB ----------------------------------------------------------- */
+
+&usb2otg {
+	dr_mode = "host";
+	status = "okay";
+};
+
+&usb2phy {
+	/delete-property/ usb0_id_det-gpios;
+	usb0_vbus-supply = <&reg_usb_vbus>;
+	usb3_vbus-supply = <&reg_usb_vbus>;
+	status = "okay";
+};
+
+&ehci0 {
+	status = "okay";
+};
+
+&ohci0 {
+	status = "okay";
+};
+
+&usb3phy {
+	status = "okay";
+};
+
+&dwc3 {
+	status = "okay";
+};
+
+&ehci3 {
+	status = "okay";
+};
+
+&ohci3 {
+	status = "okay";
+};
+
+/* ---- Display / HDMI ------------------------------------------------ */
+
+&de {
+	status = "okay";
+};
+
+&hdmi {
+	status = "okay";
+};
+
+&hdmi_out {
+	hdmi_out_con: endpoint {
+		remote-endpoint = <&hdmi_con_in>;
+	};
+};
+
+&gpu {
+	mali-supply = <&reg_dcdcc>;
+	status = "okay";
+};
+
+/* ---- Unused on N01: R/C IR receiver -------------------------------- */
+
+&r_ir {
+	status = "disabled";
+};
+
+/*
+ * AC200 (co-packaged audio codec + 100M ePHY + TV encoder) needs vendor
+ * drivers that the upstream 5.15 kernel and OpenWrt do not carry, so the
+ * H6 EMAC is intentionally left disabled here. USB and HDMI do not depend
+ * on this node.
+ */
+&emac {
+	status = "disabled";
+};

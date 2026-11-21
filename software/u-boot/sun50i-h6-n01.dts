@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/* N01 H6 board: conservative U-Boot DT based on the already-tested
+ * OrangePi One Plus baseline. USB host VBUS is switched separately by
+ * CONFIG_USB0_VBUS_PIN="PL6" in the N01 U-Boot configuration.
+ */
+
+#include "sun50i-h6-orangepi-one-plus.dts"
+
+/ {
+	model = "N01 H6";
+	compatible = "n01,h6", "allwinner,sun50i-h6";
+};
+
+/* SDC0 is intentionally excluded from the FEL -> U-Boot -> USB path. */
+&mmc0 {
+	status = "disabled";
+};
+
+/* Enable the H6 SuperSpeed host while keeping the inherited USB2 hosts. */
+&dwc3 {
+	status = "okay";
+};
+
+&usb3phy {
+	status = "okay";
+};

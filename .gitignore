@@ -1,0 +1,10 @@
+*.img
+*.img.gz
+*.bin
+*.dtb
+*.log
+*.pem
+*.key
+.env
+/output/
+/build/

@@ -1,0 +1,8 @@
+default n01-h6-openwrt
+timeout 30
+
+label n01-h6-openwrt
+  menu label N01 H6 OpenWrt 23.05.3 / Linux 5.15
+  linux /Image
+  fdt /allwinner/sun50i-h6-n01.dtb
+  append console=ttyS0,115200 console=tty1 earlycon=uart,mmio32,0x05000000 root=LABEL=rootfs rootwait rw loglevel=7 mem=2G

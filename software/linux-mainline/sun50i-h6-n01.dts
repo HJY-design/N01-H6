@@ -1,0 +1,125 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/* N01 H6 board, derived from the upstream H6 Orange Pi common description. */
+
+#include "sun50i-h6-orangepi.dtsi"
+#include "sun50i-h6-cpu-opp.dtsi"
+
+/ {
+	model = "N01 Allwinner H6 LPDDR3 board";
+	compatible = "n01,h6-board", "allwinner,sun50i-h6";
+
+	reg_usb_vbus: usb-vbus {
+		compatible = "regulator-fixed";
+		regulator-name = "usb-vbus-switched";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		vin-supply = <&reg_vcc5v>;
+		gpio = <&r_pio 0 6 GPIO_ACTIVE_HIGH>; /* PL6, USB0-DRVVBUS */
+		enable-active-high;
+	};
+};
+
+/* N01 CPU rail: AXP805 DCDCA/B in dual-phase mode. */
+&cpu0 {
+	cpu-supply = <&reg_dcdca>;
+};
+
+/* Limit the official H6 OPP table to 1.608 GHz on this board. */
+&cpu_opp_table {
+	/delete-node/ opp-1704000000;
+	/delete-node/ opp-1800000000;
+};
+
+&reg_dcdca {
+	/* 1.608 GHz needs 1.09 V for the slowest H6 speed grade. */
+	regulator-max-microvolt = <1100000>;
+};
+
+&pio {
+	vcc-pc-supply = <&reg_bldo2>;
+	vcc-pd-supply = <&reg_cldo2>;
+	vcc-pg-supply = <&reg_aldo1>;
+};
+
+&r_pio {
+	vcc-pm-supply = <&reg_aldo1>;
+};
+
+&reg_aldo1 {
+	regulator-name = "aldo1-vcc-io-pg-pl-pm";
+	regulator-always-on;
+};
+
+&reg_aldo2 {
+	regulator-name = "aldo2-ac200-ephy-tv";
+	regulator-always-on;
+};
+
+&reg_aldo3 {
+	regulator-name = "aldo3-unused";
+	/delete-property/ regulator-always-on;
+};
+
+&reg_bldo1 {
+	regulator-name = "bldo1-vcc18-dram-bias-pll";
+	regulator-always-on;
+};
+
+&reg_bldo2 {
+	regulator-name = "bldo2-vcc18-pc-pcie-hdmi-efuse";
+	regulator-always-on;
+};
+
+&reg_bldo3 {
+	regulator-name = "bldo3-unused";
+	/delete-property/ regulator-always-on;
+};
+
+&reg_cldo1 {
+	regulator-name = "cldo1-vcc33-usb-io-sd";
+	regulator-always-on;
+};
+
+&reg_cldo2 {
+	regulator-name = "cldo2-vcc33-pd-uart-rx";
+	regulator-always-on;
+};
+
+&reg_cldo3 {
+	regulator-name = "cldo3-unused";
+};
+
+&r_ir {
+	status = "disabled";
+};
+
+&usb2otg {
+	dr_mode = "host";
+	status = "okay";
+};
+
+&usb2phy {
+	/delete-property/ usb0_id_det-gpios;
+	usb0_vbus-supply = <&reg_usb_vbus>;
+	usb3_vbus-supply = <&reg_usb_vbus>;
+	status = "okay";
+};
+
+/* Enable the SuperSpeed host controller and its H6 USB3 PHY.
+ * The USB3 receptacle still has a separate USB2 companion path; keeping
+ * the EHCI/OHCI nodes enabled allows fallback when the SuperSpeed lanes
+ * are unavailable.
+ */
+&usb3phy {
+	status = "okay";
+};
+
+&dwc3 {
+	status = "okay";
+};
+
+/* The H6 package AC200 EPHY path is present on N01 but lacks a complete
+ * upstream mainline DT/driver implementation. Keep it off for first boot. */
+&emac {
+	status = "disabled";
+};
